@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Resblock(nn.Module):
+    expession = 4
     def __init__(self, in_channels, out_channels, stride, padding, mode="basicblock"):
         super().__init__()
         if mode=="basicblock":
@@ -15,13 +16,13 @@ class Resblock(nn.Module):
             )
         elif mode == "bottleneckblock":
             self.main = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels // 4,kernel_size=1, stride=stride, padding=0, bias=False),
-                nn.BatchNorm2d(out_channels // 4),
+                nn.Conv2d(in_channels, out_channels * self.expession,kernel_size=1, stride=stride, padding=0, bias=False),
+                nn.BatchNorm2d(out_channels*self.expession),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(out_channels // 4, out_channels // 4,kernel_size=3, stride=1, padding=padding, bias=False),
-                nn.BatchNorm2d(out_channels // 4),
+                nn.Conv2d(out_channels*self.expession, out_channels*self.expession,kernel_size=3, stride=1, padding=padding, bias=False),
+                nn.BatchNorm2d(out_channels * self.expession),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(out_channels // 4, out_channels,kernel_size=1, stride=1, padding=0, bias=False),
+                nn.Conv2d(out_channels * self.expession, out_channels,kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(out_channels),
             )
 
@@ -57,14 +58,6 @@ class ResNet50(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         
         self.fc = nn.Linear(2048, num_classes)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(...)
-
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
         
     def make_layer(self, in_channels, out_channels, num_blocks, stride=1):
         layers = []
@@ -73,8 +66,6 @@ class ResNet50(nn.Module):
             layers.append(Resblock(out_channels, out_channels, stride=1, padding=1, mode="bottleneckblock"))
         return nn.Sequential(*layers)
         
-    
-
     def forward(self, x):
         x = self.in_blocks(x)
         x = self.layer4(self.layer3(self.layer2(self.layer1(x))))
@@ -85,7 +76,8 @@ class ResNet50(nn.Module):
 
 
 if __name__=="__main__":
-    model = ResNet50(3, 1000).to('cuda')
-    pictures = torch.randn([1,3,224,224] , device='cuda')
-    outputs = model(pictures)
+    model = ResNet50(3, 10).to('cuda')
+    pictures = torch.randn([1,3,224,224]).to('cuda')
+    with torch.no_grad():
+        outputs = model(pictures)
     print(outputs.shape)
