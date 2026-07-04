@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
+from torchsummary import summary
 
 class Resblock(nn.Module):
     expession = 4
@@ -81,3 +82,4 @@ if __name__=="__main__":
     with torch.no_grad():
         outputs = model(pictures)
     print(outputs.shape)
+    summary(model , input_size=(3,224,224))
