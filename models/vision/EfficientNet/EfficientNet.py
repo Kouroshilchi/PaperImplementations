@@ -24,7 +24,7 @@ class MBConv(nn.Module):
 
         self.fc1 = nn.Linear(main_channels_size, int(main_channels_size*se_ratio))
         self.fc2 = nn.Linear(int(main_channels_size*se_ratio), main_channels_size)
-        
+
         self.use_residual = (stride == 1 and in_channels == out_channels)
         
     def forward(self, x):
@@ -43,8 +43,72 @@ class MBConv(nn.Module):
             x += shortcut
         return x
     
+class EfficientNetB0(nn.Module):
+    def __init__(self, in_channels=3, num_classes=1000):
+        super().__init__()
+        
+        # Stem
+        self.stem = nn.Sequential(
+            nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(32),
+            nn.SiLU(inplace=True)
+        )
+        
+        # Body (Main stages)
+        self.main = nn.Sequential(
+            # Stage 2: 16 channels
+            MBConv(32,  16, kernel_size=3, stride=1, expansion_factor=1,  se_ratio=0.25),
+            
+            # Stage 3: 24 channels
+            MBConv(16,  24, kernel_size=3, stride=2, expansion_factor=6,  se_ratio=0.25),
+            MBConv(24,  24, kernel_size=3, stride=1, expansion_factor=6,  se_ratio=0.25),
+            
+            # Stage 4: 40 channels
+            MBConv(24,  40, kernel_size=5, stride=2, expansion_factor=6,  se_ratio=0.25),
+            MBConv(40,  40, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            
+            # Stage 5: 80 channels
+            MBConv(40,  80, kernel_size=3, stride=2, expansion_factor=6,  se_ratio=0.25),
+            MBConv(80,  80, kernel_size=3, stride=1, expansion_factor=6,  se_ratio=0.25),
+            MBConv(80,  80, kernel_size=3, stride=1, expansion_factor=6,  se_ratio=0.25),
+            
+            # Stage 6: 112 channels
+            MBConv(80, 112, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            MBConv(112,112, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            MBConv(112,112, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            
+            # Stage 7: 192 channels
+            MBConv(112,192, kernel_size=5, stride=2, expansion_factor=6,  se_ratio=0.25),
+            MBConv(192,192, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            MBConv(192,192, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            MBConv(192,192, kernel_size=5, stride=1, expansion_factor=6,  se_ratio=0.25),
+            
+            # Stage 8: 320 channels
+            MBConv(192,320, kernel_size=3, stride=1, expansion_factor=6,  se_ratio=0.25),
+        )
+        
+        # Head
+        self.head = nn.Sequential(
+            nn.Conv2d(320, 1280, kernel_size=1),
+            nn.BatchNorm2d(1280),
+            nn.SiLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Dropout(p=0.2),
+            nn.Linear(1280, num_classes)
+        )
+        
+    def forward(self, x):
+        x = self.stem(x)
+        x = self.main(x)
+        x = self.head(x)
+        return x
+        
+
+
 if __name__=="__main__":
-    mbblock = MBConv(3, 100, 3, 1, 6, 0.25).to('cuda')
+    model = EfficientNetB0(3, 100).to('cuda')
     sample = torch.randn([1,3,224,224]).to('cuda')
-    outputs = mbblock(sample)
+    outputs = model(sample)
+    summary(model, (3,224,224))
     print(outputs.shape)
