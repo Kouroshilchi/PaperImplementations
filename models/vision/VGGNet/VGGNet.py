@@ -17,3 +17,46 @@ class ConvBlock(nn.Module):
         self.layers = nn.Sequential(*layers)
     def forward(self, x):
         return self.layers(x)
+
+
+class VGG16(nn.Module):
+    def __init__(self, in_channels, num_classes):
+        super().__init__()
+        self.layers = nn.Sequential(
+
+            ConvBlock(in_channels,64,3,1,True,2),
+            nn.MaxPool2d(2, 2), # 224 -> 112
+
+            ConvBlock(64,128,3,1,True,2),
+            nn.MaxPool2d(2, 2), # 112 -> 56
+
+            ConvBlock(128,256,3,1,True,3),
+            nn.MaxPool2d(2, 2), # 56 -> 28
+
+            ConvBlock(256,512,3,1,True,3),
+            nn.MaxPool2d(2, 2), # 28 -> 14
+
+            ConvBlock(512,512,3,1,True,3),
+            nn.MaxPool2d(2, 2), # 14 -> 7
+
+            nn.Flatten(),
+            nn.Linear(7 * 7 * 512, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(4096, num_classes)
+            
+        )
+    def forward(self, x):
+        return self.layers(x)
+
+
+if __name__=="__main__":
+    model = VGG16(3,1000).to('cuda')
+    picture = torch.randn([1,3,224,224]).to('cuda')
+    with torch.no_grad():
+        outputs = model(picture)
+    print(outputs.shape)
+    summary(model, (3,224,224))
