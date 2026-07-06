@@ -41,10 +41,57 @@ class InceptionBlock(nn.Module):
         x_d = self.d_branch(x)
         x = torch.cat([x_a, x_b, x_c, x_d], dim=1)
         return x
+    
+
+class GoogleNet(nn.Module):
+    def __init__(self, in_channels, num_classes):
+        super().__init__()
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True), 
+            nn.Conv2d(64, 64, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 192, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+        )
+        self.layers = nn.Sequential(
+            InceptionBlock(192, 64, 96, 128, 16, 32, 32),   # 3a
+            InceptionBlock(256, 128, 128, 192, 32, 96, 64), # 3b
+            
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            
+            InceptionBlock(480, 192, 96, 208, 16, 48, 64),   # 4a
+            InceptionBlock(512, 160, 112, 224, 24, 64, 64),  # 4b
+            InceptionBlock(512, 128, 128, 256, 24, 64, 64),  # 4c
+            InceptionBlock(512, 112, 144, 288, 32, 64, 64),  # 4d
+            InceptionBlock(528, 256, 160, 320, 32, 128, 128),# 4e
+            
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            
+            InceptionBlock(832, 256, 160, 320, 32, 128, 128),# 5a
+            InceptionBlock(832, 384, 192, 384, 48, 128, 128),# 5b
+        )
+        self.head = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Dropout(0.4),
+            nn.Linear(1024,num_classes),
+            nn.Softmax(dim=1)
+        )
+    def forward(self, x):
+        x = self.bottleneck(x)
+        x = self.layers(x)
+        x = self.head(x)
+        return x
+
+
 
 if __name__=="__main__":
-    block = InceptionBlock(3, 64, 96, 128, 16, 32, 32).to('cuda')
+    block = GoogleNet(3, 100).to('cuda')
     picture = torch.randn([1,3,224,224]).to('cuda')
     with torch.no_grad():
         outputs = block(picture)
-    print (outputs.shape)
+    summary(block, (3,224,224))
+    print(outputs.shape)
