@@ -69,8 +69,7 @@ class MobileNet(nn.Module):
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(1024, num_classes),
-            nn.Softmax(dim=1)
+            nn.Linear(self.get_ch(1024), num_classes)
         )        
 
     def get_ch(self, num_channels):
