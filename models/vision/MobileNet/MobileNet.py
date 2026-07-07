@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchsummary import summary
+# in_channels , out_channels, stride, num_layers
+mobile_net_architecture = [
+    (32, 64, 1, 1),   # Stage 1
+    (64, 128, 2, 1),  # Stage 2
+    (128, 128, 1, 1), # Stage 3
+    (128, 256, 2, 1), # Stage 4
+    (256, 256, 1, 1), # Stage 5
+    (256, 512, 2, 1), # Stage 6
+    (512, 512, 1, 5), # Stage 7 
+    (512, 1024, 2, 1),# Stage 8
+    (1024, 1024, 1, 1)# Stage 9
+]
 
 class DepthwiseSeparableBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1):
@@ -46,26 +58,11 @@ class MobileNet(nn.Module):
             nn.BatchNorm2d(self.get_ch(32)),
             nn.ReLU(inplace=True),
         )
-        self.body = nn.Sequential(
-            DepthwiseSeparableBlock(self.get_ch(32),  self.get_ch(64),  stride=1),
-            
-            DepthwiseSeparableBlock(self.get_ch(64),  self.get_ch(128), stride=2),
-            DepthwiseSeparableBlock(self.get_ch(128), self.get_ch(128), stride=1),
-            
-            DepthwiseSeparableBlock(self.get_ch(128), self.get_ch(256), stride=2),
-            DepthwiseSeparableBlock(self.get_ch(256), self.get_ch(256), stride=1),
-            
-            DepthwiseSeparableBlock(self.get_ch(256), self.get_ch(512), stride=2),
-            
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(512), stride=1),
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(512), stride=1),
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(512), stride=1),
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(512), stride=1),
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(512), stride=1),
-            
-            DepthwiseSeparableBlock(self.get_ch(512), self.get_ch(1024), stride=2),
-            DepthwiseSeparableBlock(self.get_ch(1024), self.get_ch(1024), stride=1),
-        )
+        layers = []
+        for in_ch, out_ch, stride, num_layers in mobile_net_architecture:
+            for i in range(num_layers):
+                layers.append(DepthwiseSeparableBlock(self.get_ch(in_ch), self.get_ch(out_ch), stride=stride if i==0 else 1))
+        self.body = nn.Sequential(*layers)
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
