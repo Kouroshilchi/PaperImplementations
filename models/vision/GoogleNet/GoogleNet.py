@@ -77,8 +77,7 @@ class GoogleNet(nn.Module):
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(1024,num_classes),
-            nn.Softmax(dim=1)
+            nn.Linear(1024,num_classes)
         )
     def forward(self, x):
         x = self.bottleneck(x)

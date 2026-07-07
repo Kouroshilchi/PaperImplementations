@@ -16,7 +16,6 @@ class AlexNet(nn.Module):
         self.conv4 = nn.Conv2d(in_channels=384, out_channels=384, kernel_size=3, padding=1)
         self.conv5 = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=3, padding=1)
         self.dropout = nn.Dropout(0.5)
-        self.softmax = nn.Softmax(1)
         self.fc1 = nn.Linear(9216, 4096)
         self.fc2 = nn.Linear(4096, 4096)
         self.fc3 = nn.Linear(4096, num_classes)
@@ -29,7 +28,7 @@ class AlexNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.dropout(self.relu(self.fc1(x)))
         x = self.dropout(self.relu(self.fc2(x)))
-        x = self.softmax(self.fc3(x))
+        x = self.fc3(x)
         return x
 
 
