@@ -11,10 +11,16 @@ class DenseBlock(nn.Module):
             self.layers.append(self._make_layer(in_channels + i * growth_rate, growth_rate))
 
     def _make_layer(self, in_channels, growth_rate):
+        bottleneck_channels = 4 * growth_rate  
+        
         layer = nn.Sequential(
             nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, growth_rate, kernel_size=3, stride=1, padding=1, bias=False)
+            nn.Conv2d(in_channels, bottleneck_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(bottleneck_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(bottleneck_channels, growth_rate, kernel_size=3, 
+                     stride=1, padding=1, bias=False)
         )
         return layer
 
@@ -31,7 +37,7 @@ class TransitionBlock(nn.Module):
         self.layers = nn.Sequential(
             nn.BatchNorm2d(in_channel),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channel, int(in_channel*theta), kernel_size=1),
+            nn.Conv2d(in_channel, int(in_channel*theta), kernel_size=1, bias=False),
             nn.AvgPool2d(kernel_size=2, stride=2)
         )
     def forward(self, x):
