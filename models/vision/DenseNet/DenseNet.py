@@ -24,3 +24,16 @@ class DenseBlock(nn.Module):
             new_features = layer(torch.cat(features, 1))
             features.append(new_features)
         return torch.cat(features, 1)
+
+class TransitionBlock(nn.Module):
+    def __init__(self, in_channel, theta):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.BatchNorm2d(in_channel),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channel, int(in_channel*theta), kernel_size=1),
+            nn.AvgPool2d(kernel_size=2, stride=2)
+        )
+    def forward(self, x):
+        x = self.layers(x)
+        return x
