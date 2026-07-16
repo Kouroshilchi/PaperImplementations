@@ -1,7 +1,7 @@
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import summary
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, d_k):
@@ -68,7 +68,7 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_seq_length, dim_model)
         position = torch.arange(0, max_seq_length, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, dim_model, 2).float() * 
-                                (-torch.log(10000.0) / dim_model))
+                                (-math.log(10000.0) / dim_model))
         pe[:, 0::2] = torch.sin(position * div_term)      
         pe[:, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
@@ -160,8 +160,8 @@ class TransformerDecoder(nn.Module):
         return x
 
 if __name__=="__main__":
-    attention = MultiHeadAttention(16, 128).to('cuda')
-    embedd = torch.randn([10,1,128], device='cuda')
+    Transformer = TransformerDecoder(128, 6, 8, 0.1).to('cuda')
+    embedd = torch.randn([10,10,128], device='cuda')
     with torch.no_grad():
-        output = attention(embedd)
+        output = Transformer(embedd, embedd)
     print(output.shape)
