@@ -38,7 +38,21 @@ class MultiHeadAttention(nn.Module):
         output = self.scaled_attention(Q, K, V, mask)
         output = output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
         return self.O_T(output)
-        
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, dim_model, seq_length):
+        super().__init__()
+        pe = torch.zeros(seq_length, dim_model)
+        position = torch.arange(0, seq_length, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, dim_model, 2).float() * 
+                                (-torch.log(10000.0) / dim_model))
+        pe[:, 0::2] = torch.sin(position * div_term)      
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+    def forward(self, x):
+        seq_len = x.size(1)
+        return x + self.pe[:seq_len].to(x.device)
+
 
 if __name__=="__main__":
     attention = MultiHeadAttention(16, 128).to('cuda')
