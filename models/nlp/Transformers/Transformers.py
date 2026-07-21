@@ -156,7 +156,7 @@ class TransformerDecoder(nn.Module):
     def forward(self, x, encoder_output, src_mask=None, tgt_mask=None):
         x = self.pos_encoder(x)                  
         for layer in self.layers:
-            x = layer(x, encoder_output, src_mask, tgt_mask)
+            x = layer(x, encoder_output, tgt_mask, src_mask)
         return x
 
 if __name__=="__main__":
